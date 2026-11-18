@@ -4,50 +4,60 @@
 
 [Скачать CopyCheck для Windows x64](https://github.com/Kriffi/copycheck/releases/latest/download/copycheck.exe) · [Релизы и контрольная сумма](https://github.com/Kriffi/copycheck/releases/latest)
 
-## Как это выглядит
+## Проверка на Windows
 
-CopyCheck выводит обычный текст в консоль Windows. Ниже текст из двух запусков демо в PowerShell.
+Один пример от начала до конца. Исходная папка `C:\Games\Фото` содержит `1.png` и `copycheck.exe`. Оба файла попадают в проверку. Первые три изображения показывают команды и вывод запуска, открытые в Блокноте. Последнее снято в PowerShell при проверке тех же папок с первым снимком.
 
-**Снимок и проверка точной копии**
+### 1. Открыть исходную папку
 
-```text
-PS> copycheck.exe snapshot source --out snapshot.json
-Снимок сохранён: snapshot.json
-Файлов: 4
-Код выхода: 0
-
-PS> copycheck.exe verify copy --manifest snapshot.json
-Проверка копии
-Совпало: 4
-Перемещено: 0 | Изменено: 0 | Отсутствует: 0 | Новых: 0
-Код выхода: 0
+```powershell
+Set-Location -LiteralPath "C:\Games\Фото"
+Get-ChildItem -Name
 ```
 
-**Проверка после изменения копии**
+![Список файлов исходной папки](docs/screenshots/01-source.png)
+
+### 2. Сохранить снимок до копирования
+
+```powershell
+.\copycheck.exe snapshot "." --out "$env:TEMP\copycheck-demo-photos.json"
+Get-Content -LiteralPath "$env:TEMP\copycheck-demo-photos.json"
+```
+
+В JSON лежат относительный путь, размер и SHA-256 каждого файла. Выбери свободное имя для снимка, если этот файл уже есть.
+
+![Сохранённый снимок и его содержимое](docs/screenshots/02-snapshot.png)
+
+### 3. Скопировать папку
+
+```powershell
+Copy-Item -LiteralPath "C:\Games\Фото" -Destination "C:\Games\Фотокопия" -Recurse
+Get-ChildItem -LiteralPath "C:\Games\Фотокопия" -Name
+```
+
+Команда создаёт папку `Фотокопия` с нуля. При повторе используй свободный путь назначения.
+
+![Копирование папки и список файлов копии](docs/screenshots/03-copy.png)
+
+### 4. Проверить копию
+
+```powershell
+.\copycheck.exe verify "C:\Games\Фотокопия" --manifest "$env:TEMP\copycheck-demo-photos.json"
+```
+
+В свежем запуске совпали оба файла, код выхода — `0`. На снимке PowerShell видно такой же результат для `copycheck-photos.json`, снимка тех же файлов из первого запуска.
+
+![PowerShell показывает два совпадения и ноль различий](docs/screenshots/04-verify.png)
+
+Если переименовать `1.png` в `2.png` только в копии и снова выполнить проверку, CopyCheck находит файл по содержимому. Код выхода — `1`.
 
 ```text
-PS> copycheck.exe verify copy --manifest snapshot.json
 Проверка копии
 Совпало: 1
-Перемещено: 1 | Изменено: 1 | Отсутствует: 1 | Новых: 1
+Перемещено: 1 | Изменено: 0 | Отсутствует: 0 | Новых: 0
 
-Изменён: docs/budget.txt
-Перемещён: docs/receipt.txt → docs/receipt-final.txt
-Отсутствует: docs/ticket.txt
-Новый: readme.txt
-Код выхода: 1
+Перемещён: 1.png → 2.png
 ```
-
-<details>
-<summary>Оформленные изображения того же вывода</summary>
-
-Цвета и рамка добавлены при оформлении README.
-
-![Оформленный вывод: снимок и успешная проверка копии](docs/screenshots/clean-copy.png)
-
-![Оформленный вывод: изменённый, переименованный, пропущенный и новый файлы](docs/screenshots/differences.png)
-
-</details>
 
 ## Две команды
 
